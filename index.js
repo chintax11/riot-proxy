@@ -17,6 +17,7 @@ app.use(express.json());
    ENV VARIABLES
 =================================*/
 const RIOT_API_KEY = process.env.RIOT_API_KEY;
+console.log("RIOT KEY:", RIOT_API_KEY);
 const PORT = process.env.PORT || 3001;
 
 if (!RIOT_API_KEY) {
