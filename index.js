@@ -2,14 +2,26 @@ const express = require("express");
 const cors = require("cors");
 
 const app = express();
-app.use(cors());
+
+/* ===============================
+   MIDDLEWARE
+=================================*/
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+}));
 app.use(express.json());
 
-// 🔐 Clé Riot depuis Render (Environment Variable)
+/* ===============================
+   ENV VARIABLES
+=================================*/
 const RIOT_API_KEY = process.env.RIOT_API_KEY;
-
-// 🌍 Port dynamique pour Render
 const PORT = process.env.PORT || 3001;
+
+if (!RIOT_API_KEY) {
+  console.error("❌ RIOT_API_KEY is missing in environment variables");
+}
 
 /* ===============================
    TEST ROOT ROUTE
@@ -44,13 +56,14 @@ app.post("/import", async (req, res) => {
     const data = await response.json();
 
     if (!response.ok) {
+      console.error("Import error:", data);
       return res.status(response.status).json(data);
     }
 
     res.json(data);
 
   } catch (error) {
-    console.error(error);
+    console.error("Server error /import:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -74,20 +87,28 @@ app.post("/rank", async (req, res) => {
     const summonerData = await summonerRes.json();
 
     if (!summonerRes.ok) {
+      console.error("Summoner fetch error:", summonerData);
       return res.status(summonerRes.status).json(summonerData);
     }
 
+    const summonerId = summonerData.id;
+
     // 🏆 Get Rank
     const rankRes = await fetch(
-      `https://euw1.api.riotgames.com/lol/league/v4/entries/by-summoner/${summonerData.id}?api_key=${RIOT_API_KEY}`
+      `https://euw1.api.riotgames.com/lol/league/v4/entries/by-summoner/${summonerId}?api_key=${RIOT_API_KEY}`
     );
 
     const rankData = await rankRes.json();
 
+    if (!rankRes.ok) {
+      console.error("Rank fetch error:", rankData);
+      return res.status(rankRes.status).json(rankData);
+    }
+
     res.json(rankData);
 
   } catch (error) {
-    console.error(error);
+    console.error("Server error /rank:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -110,13 +131,14 @@ app.post("/matches", async (req, res) => {
     const matchData = await matchRes.json();
 
     if (!matchRes.ok) {
+      console.error("Match history error:", matchData);
       return res.status(matchRes.status).json(matchData);
     }
 
     res.json(matchData);
 
   } catch (error) {
-    console.error(error);
+    console.error("Server error /matches:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -139,13 +161,14 @@ app.post("/match-detail", async (req, res) => {
     const detailData = await detailRes.json();
 
     if (!detailRes.ok) {
+      console.error("Match detail error:", detailData);
       return res.status(detailRes.status).json(detailData);
     }
 
     res.json(detailData);
 
   } catch (error) {
-    console.error(error);
+    console.error("Server error /match-detail:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -154,5 +177,5 @@ app.post("/match-detail", async (req, res) => {
    START SERVER
 =================================*/
 app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+  console.log("✅ Server running on port " + PORT);
 });
