@@ -2,10 +2,12 @@ const express = require("express");
 const cors = require("cors");
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
-const RIOT_API_KEY = "RGAPI-5889fd04-2a8b-4233-bfca-e27687a0026a";
+// Utilise la clé depuis Render (Environment Variables)
+const RIOT_API_KEY = process.env.RIOT_API_KEY;
 
 app.post("/import", async (req, res) => {
   try {
@@ -16,6 +18,10 @@ app.post("/import", async (req, res) => {
     }
 
     const [gameName, tagLine] = riotId.split("#");
+
+    if (!gameName || !tagLine) {
+      return res.status(400).json({ error: "Invalid Riot ID format. Use gameName#tagLine" });
+    }
 
     const response = await fetch(
       `https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${gameName}/${tagLine}?api_key=${RIOT_API_KEY}`
@@ -28,12 +34,16 @@ app.post("/import", async (req, res) => {
     }
 
     res.json(data);
-  } catch (err) {
-    console.error(err);
+
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-app.listen(3001, () => {
-  console.log("Proxy running on http://localhost:3001");
+// IMPORTANT pour Render
+const PORT = process.env.PORT || 3001;
+
+app.listen(PORT, () => {
+  console.log("Server running on port " + PORT);
 });
