@@ -4,6 +4,13 @@ const cors = require("cors");
 const app = express();
 
 /* ===============================
+   CONFIG
+=================================*/
+const REGION = "euw1"; // ⚠️ change ici si besoin
+const RIOT_API_KEY = process.env.RIOT_API_KEY;
+const PORT = process.env.PORT || 3001;
+
+/* ===============================
    MIDDLEWARE
 =================================*/
 app.use(cors({
@@ -14,25 +21,47 @@ app.use(cors({
 app.use(express.json());
 
 /* ===============================
-   ENV VARIABLES
+   DEBUG ENV
 =================================*/
-const RIOT_API_KEY = process.env.RIOT_API_KEY;
-console.log("RIOT KEY:", RIOT_API_KEY);
-const PORT = process.env.PORT || 3001;
+console.log("🔐 RIOT KEY:", RIOT_API_KEY);
 
 if (!RIOT_API_KEY) {
   console.error("❌ RIOT_API_KEY is missing in environment variables");
 }
 
 /* ===============================
-   TEST ROOT ROUTE
+   ROOT TEST
 =================================*/
 app.get("/", (req, res) => {
   res.json({ message: "Riot Proxy API is running 🚀" });
 });
 
 /* ===============================
-   1️⃣ IMPORT (RiotID → PUUID)
+   TEST RIOT PLATFORM ACCESS
+=================================*/
+app.get("/test-rank", async (req, res) => {
+  try {
+    const test = await fetch(
+      `https://${REGION}.api.riotgames.com/lol/platform/v3/champion-rotations?api_key=${RIOT_API_KEY}`
+    );
+
+    const data = await test.json();
+
+    if (!test.ok) {
+      console.error("❌ Test rank error:", data);
+      return res.status(test.status).json(data);
+    }
+
+    res.json(data);
+
+  } catch (error) {
+    console.error("Server error /test-rank:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+/* ===============================
+   IMPORT (RiotID → PUUID)
 =================================*/
 app.post("/import", async (req, res) => {
   try {
@@ -57,7 +86,7 @@ app.post("/import", async (req, res) => {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Import error:", data);
+      console.error("❌ Import error:", data);
       return res.status(response.status).json(data);
     }
 
@@ -70,7 +99,7 @@ app.post("/import", async (req, res) => {
 });
 
 /* ===============================
-   2️⃣ RANK (PUUID → Rank)
+   RANK (PUUID → Rank)
 =================================*/
 app.post("/rank", async (req, res) => {
   try {
@@ -80,29 +109,27 @@ app.post("/rank", async (req, res) => {
       return res.status(400).json({ error: "Missing puuid" });
     }
 
-    // 🔎 Get Summoner ID
     const summonerRes = await fetch(
-      `https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${puuid}?api_key=${RIOT_API_KEY}`
+      `https://${REGION}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${puuid}?api_key=${RIOT_API_KEY}`
     );
 
     const summonerData = await summonerRes.json();
 
     if (!summonerRes.ok) {
-      console.error("Summoner fetch error:", summonerData);
+      console.error("❌ Summoner fetch error:", summonerData);
       return res.status(summonerRes.status).json(summonerData);
     }
 
     const summonerId = summonerData.id;
 
-    // 🏆 Get Rank
     const rankRes = await fetch(
-      `https://euw1.api.riotgames.com/lol/league/v4/entries/by-summoner/${summonerId}?api_key=${RIOT_API_KEY}`
+      `https://${REGION}.api.riotgames.com/lol/league/v4/entries/by-summoner/${summonerId}?api_key=${RIOT_API_KEY}`
     );
 
     const rankData = await rankRes.json();
 
     if (!rankRes.ok) {
-      console.error("Rank fetch error:", rankData);
+      console.error("❌ Rank fetch error:", rankData);
       return res.status(rankRes.status).json(rankData);
     }
 
@@ -115,7 +142,7 @@ app.post("/rank", async (req, res) => {
 });
 
 /* ===============================
-   3️⃣ MATCH HISTORY (PUUID → IDs)
+   MATCH HISTORY
 =================================*/
 app.post("/matches", async (req, res) => {
   try {
@@ -132,7 +159,7 @@ app.post("/matches", async (req, res) => {
     const matchData = await matchRes.json();
 
     if (!matchRes.ok) {
-      console.error("Match history error:", matchData);
+      console.error("❌ Match history error:", matchData);
       return res.status(matchRes.status).json(matchData);
     }
 
@@ -145,7 +172,7 @@ app.post("/matches", async (req, res) => {
 });
 
 /* ===============================
-   4️⃣ MATCH DETAIL
+   MATCH DETAIL
 =================================*/
 app.post("/match-detail", async (req, res) => {
   try {
@@ -162,7 +189,7 @@ app.post("/match-detail", async (req, res) => {
     const detailData = await detailRes.json();
 
     if (!detailRes.ok) {
-      console.error("Match detail error:", detailData);
+      console.error("❌ Match detail error:", detailData);
       return res.status(detailRes.status).json(detailData);
     }
 
