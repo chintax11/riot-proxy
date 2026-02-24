@@ -207,3 +207,13 @@ app.post("/match-detail", async (req, res) => {
 app.listen(PORT, () => {
   console.log("✅ Server running on port " + PORT);
 });
+app.get("/debug-key", (req, res) => {
+  if (!RIOT_API_KEY) {
+    return res.json({ error: "NO KEY FOUND" });
+  }
+
+  res.json({
+    keyStart: RIOT_API_KEY.substring(0, 10),
+    length: RIOT_API_KEY.length
+  });
+});
